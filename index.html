@@ -4135,7 +4135,7 @@ func _ready() -> void:
 		return
 	var files: Array[String] = []
 	for f in da.get_files():
-		var ext := f.get_extension().to_lower()
+		var ext: String = String(f).get_extension().to_lower()
 		# exported projects list "x.glb.import"; editor lists "x.glb"
 		if ext == "glb":
 			files.append(f)
@@ -4191,7 +4191,7 @@ func _check(dir: String, file: String) -> Node3D:
 				skins += 1
 			for s in mi.mesh.get_surface_count():
 				surfaces += 1
-				if (mi.mesh.surface_get_format(s) & Mesh.ARRAY_FORMAT_COLOR) != 0:
+				if _tinted(mi.mesh, s):
 					tinted += 1
 				var arrays := mi.mesh.surface_get_arrays(s)
 				var idx = arrays[Mesh.ARRAY_INDEX]
@@ -4253,6 +4253,12 @@ func _show() -> void:
 	label.custom_minimum_size = Vector2(get_viewport().get_visible_rect().size.x - 44, 0)
 	panel.add_child(label)
 	layer.add_child(panel)
+
+func _tinted(mesh: Mesh, i: int) -> bool:
+	if mesh is ArrayMesh:
+		return ((mesh as ArrayMesh).surface_get_format(i) & Mesh.ARRAY_FORMAT_COLOR) != 0
+	var a := mesh.surface_get_arrays(i)
+	return a.size() > Mesh.ARRAY_COLOR and a[Mesh.ARRAY_COLOR] != null
 `,dE=`[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="polycraft_check_play.gd" id="1"]
@@ -4319,7 +4325,7 @@ func _apply(node: Node, look: Shader, outline: Shader) -> void:
 		for i in mi.mesh.get_surface_count():
 			var src := mi.mesh.surface_get_material(i)
 			# see-through, cut-out and glowing surfaces keep Godot's standard material (alpha + emission)
-			var tinted := (mi.mesh.surface_get_format(i) & Mesh.ARRAY_FORMAT_COLOR) != 0
+			var tinted := _tinted(mi.mesh, i)
 			if src is BaseMaterial3D and ((src as BaseMaterial3D).transparency != BaseMaterial3D.TRANSPARENCY_DISABLED or (src as BaseMaterial3D).emission_enabled):
 				# vertex tint still applies on the standard material
 				if tinted:
@@ -4337,9 +4343,18 @@ func _apply(node: Node, look: Shader, outline: Shader) -> void:
 				var o := ShaderMaterial.new()
 				o.shader = outline
 				m.next_pass = o
-			mi.mesh.surface_set_material(i, m)
+			if mi.mesh is ArrayMesh:
+				(mi.mesh as ArrayMesh).surface_set_material(i, m)
+			else:
+				mi.set_surface_override_material(i, m)
 	for c in node.get_children():
 		_apply(c, look, outline)
+
+func _tinted(mesh: Mesh, i: int) -> bool:
+	if mesh is ArrayMesh:
+		return ((mesh as ArrayMesh).surface_get_format(i) & Mesh.ARRAY_FORMAT_COLOR) != 0
+	var a := mesh.surface_get_arrays(i)
+	return a.size() > Mesh.ARRAY_COLOR and a[Mesh.ARRAY_COLOR] != null
 `}function mE(i){const[e,t,n]=Hh(i);return`@tool
 extends EditorScript
 ## Polycraft Studio checker. Open this file in the Script editor and choose File > Run (Ctrl+Shift+X).
@@ -4390,7 +4405,7 @@ func _check(dir: String, file: String, env: Environment) -> void:
 				skins += 1
 			for s in mi.mesh.get_surface_count():
 				surfaces += 1
-				if (mi.mesh.surface_get_format(s) & Mesh.ARRAY_FORMAT_COLOR) != 0:
+				if _tinted(mi.mesh, s):
 					tinted += 1
 				var arrays := mi.mesh.surface_get_arrays(s)
 				var idx = arrays[Mesh.ARRAY_INDEX]
@@ -4450,6 +4465,12 @@ func _check(dir: String, file: String, env: Environment) -> void:
 		if ResourceSaver.save(scene, out) == OK:
 			print("   preview scene saved: ", out)
 	root.free()
+
+func _tinted(mesh: Mesh, i: int) -> bool:
+	if mesh is ArrayMesh:
+		return ((mesh as ArrayMesh).surface_get_format(i) & Mesh.ARRAY_FORMAT_COLOR) != 0
+	var a := mesh.surface_get_arrays(i)
+	return a.size() > Mesh.ARRAY_COLOR and a[Mesh.ARRAY_COLOR] != null
 `}function gE(){return`@tool
 extends EditorScript
 ## Polycraft Studio → GridMap. Open in the Script editor and choose File > Run.
