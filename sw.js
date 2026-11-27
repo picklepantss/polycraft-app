@@ -1,5 +1,5 @@
 // Offline cache: network-first for the page, cache-first for hashed assets.
-const CACHE = 'polycraft-v14';
+const CACHE = 'polycraft-v15';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'])).then(() => self.skipWaiting()));
 });
