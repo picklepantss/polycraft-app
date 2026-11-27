@@ -1,5 +1,5 @@
 // Offline cache: network-first for the page, cache-first for hashed assets.
-const CACHE = 'polycraft-v21';
+const CACHE = 'polycraft-v22';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'])).then(() => self.skipWaiting()));
 });
@@ -9,6 +9,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  if (new URL(req.url).pathname.endsWith('version.json')) return; // always ask the network
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then((r) => { const c = r.clone(); caches.open(CACHE).then((x) => x.put('./index.html', c)); return r; }).catch(() => caches.match('./index.html')));
     return;
